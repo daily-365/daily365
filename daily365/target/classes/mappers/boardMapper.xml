@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BoardMapper">
+<sql id="search">
+<if test="searchType!=null and !searchType.equals('')">
+	<if test="searchType=='all'.toString()">AND  ( title like CONCAT('%',#{keyword},'%') 
+											OR content like CONCAT('%',#{keyword},'%')
+											OR writer like CONCAT('%',#{keyword},'%')  )
+	</if>
+	<if test="searchType=='t'.toString()">AND title like CONCAT('%',#{keyword},'%')</if>
+	<if test="searchType=='c'.toString()">AND content like CONCAT('%',#{keyword},'%')</if>
+	<if test="searchType=='w'.toString()">AND writer like  CONCAT('%',#{keyword},'%')</if>
+</if>
+<if test="startDate!=null and !startDate.equals('') and endDate!=null and !endDate.equals('')">
+	AND SUBSTRING(regdate,1,10) BETWEEN  #{startDate} AND #{endDate}
+</if>
+</sql>
+<insert id="insertBoard" >
+Insert Into Board (title,content,writer)
+	Values ( #{title},#{content},#{writer})
+</insert>
+<select id="selectList"  resultType="com.daily365.www.vo.BoardVO">
+Select rnum ,bno,title,content,writer,regdate,moddate,likeCnt,reportCnt,hitCnt,deleteYn
+From ( Select  bno,title,content,writer,regdate,moddate,likeCnt,reportCnt,hitCnt,deleteYn,
+		ROW_NUMBER() OVER(ORDER BY bno DESC) AS rnum
+		From Board
+		Where 1=1
+			<include refid="search"></include>
+		) R	 
+	Where 1=1
+		And  rnum Between #{startRow} and #{endRow}
+		And deleteYn ='N'
+	Order by bno desc
+</select>
+<select id="selectById" resultType="com.daily365.www.vo.BoardVO">
+Select bno,title,content,writer,regdate,moddate,likeCnt,reportCnt,hitCnt,deleteYn
+	From board
+	Where 1=1
+		And bno=#{bno}
+</select>
+<update id="updateBoard">
+Update Board Set title=#{title},content=#{content},moddate=(SELECT DATE_FORMAT(now(),'%Y-%m-%d %H:%i:%S') AS moddate From dual) 
+	Where bno=#{bno}
+</update>
+<update id="deleteBoard">
+Update Board Set deleteYn ='Y'
+	Where bno=#{bno}
+</update>
+
+<select id="totalCount" resultType="int">
+Select count(bno)
+From board
+Where 1=1
+<include refid="search"></include>
+</select>
+
+<update id="updateHit">
+update board
+	set hitCnt =hitCnt+1
+where bno=#{bno}
+</update>
+
+<update id="updateLike" >
+Update board
+	set likeCnt=likeCnt+1
+where 1=1
+	And bno=#{bno}
+	AND ( SELECT count(userId) FROM boardLike WHERE bno =#{bno} ) =0
+</update>
+<update id="updateReport">
+Update board
+	set reportCnt=reportCnt+1
+where 1=1
+	And bno =#{bno}
+	AND ( SELECT count(userId) FROM boardReport WHERE bno =#{bno} ) =0
+</update>
+<insert id="insertLikeByuserId">
+ Insert into boardLike (bno,userId)
+ 		values (#{bno},#{userId})
+</insert>
+<insert id="insertReportByuserId">
+ Insert into boardReport (bno,userId)
+ 		values (#{bno},#{userId})
+</insert>
+<select id="selectLikeByUserId" resultType="int">
+Select  IFNULL(Count(idx),0) idx
+From boardLike
+Where 1=1
+	And bno=#{bno}
+	And userId=#{userId}
+</select>
+<select id="selectReportByUserId" resultType="int">
+Select IFNULL(Count(idx),0) idx
+From boardReport
+Where 1=1
+	And bno=#{bno}
+	And userId=#{userId}
+</select>
+
+
+<select id="selectReply" resultType="com.daily365.www.vo.ReplyVO">
+SELECT IFNULL(rno,0) rno,IFNULL(bno,0) bno,content,writer,regdate,max(likeCnt) likeCnt,max(reportCnt) reportCnt,deleteYn
+FROM reply 
+WHERE bno=#{bno}
+GROUP BY rno,bno,content,writer,deleteYn
+ORDER BY rno DESC
+</select>
+<insert id="insertReply">
+Insert into reply (bno,content,writer,regdate)
+values (#{bno},#{content},#{writer},#{regdate})
+</insert>
+<update id="updateReply">
+Update reply 
+	set content=#{content}
+Where rno=#{rno}
+</update>
+<update id="deleteReply">
+Update reply
+	set deleteYn='Y'
+Where rno=#{rno}
+</update>
+
+<update id="updateReplyLike">
+Update reply
+	set likeCnt=likeCnt+1
+Where 1=1
+	And rno=#{rno}
+	And ( SELECT count(userId) FROM replyLike WHERE rno =#{rno} ) =0
+</update>
+<update id="updateReplyReport">
+Update reply
+	set reportCnt =reportCnt+1
+Where 1=1
+	And rno=#{rno}
+	And ( SELECT count(userId) FROM replyReport WHERE rno =#{rno} ) =0
+</update>
+<insert id="insertReplyLike">
+Insert into replyLike (rno,userId)
+		values (#{rno},#{userId})
+</insert>
+<insert id="insertReplyReport">
+Insert into replyReport (rno,userId)
+		values (#{rno},#{userId})
+</insert>
+<select id="selectReplyLike" resultType="int">
+Select IFNULL(Count(idx),0) idx
+From replyLike
+Where 1=1
+	And rno=#{rno}
+	And userId=#{userId}
+</select>
+<select id="selectReplyReport" resultType="int">
+Select IFNULL(Count(idx),0) idx
+From replyReport
+Where 1=1
+	And rno=#{rno}
+	And userId=#{userId}
+</select>
+
+
+<insert id="insertFile">
+INSERT INTO file (bno,originFileName,storedFileName,fileSize,regDate) 
+VALUES ( (SELECT max(bno)+1 FROM board) ,#{originFileName},#{storedFileName},#{fileSize},NOW())
+</insert>
+<select id="selectFile" resultType="hashMap">
+SELECT fileNo,bno,originFileName,storedFileName,ROUND(fileSize/1024,1) AS fileSize,regDate
+FROM file 
+WHERE bno=#{bno}
+	AND deleteYn='N'
+ORDER BY fileNo ASC
+</select>
+<select id="selectByFileNo" resultType="hashMap">
+SELECT fileNo,bno,originFileName,storedFileName,ROUND(fileSize/1024,1) AS fileSize,regDate
+FROM file
+WHERE fileNo=#{fileNo}
+</select>
+<update id="deleteFile" >
+UPDATE file 
+SET deleteYn ='Y'
+WHERE fileNo=#{fileNo}
+</update>
+<update id="deleteFileByBno">
+UPDATE file 
+SET deleteYn ='Y'
+WHERE bno=#{bno}
+</update>
+<insert id="insertFileByBno">
+INSERT INTO file (bno,originFileName,storedFileName,fileSize,regDate) 
+VALUES ( #{bno},#{originFileName},#{storedFileName},#{fileSize},NOW())
+</insert>
+
+<select id="selectExcelInfo" resultType="com.daily365.www.vo.BoardVO">
+Select bno,title,content,writer,regdate,moddate,likeCnt,reportCnt,hitCnt,deleteYn
+	From board
+	Where 1=1
+		<include refid="search"></include>
+Order by bno ASC
+</select>
+
+
+</mapper>

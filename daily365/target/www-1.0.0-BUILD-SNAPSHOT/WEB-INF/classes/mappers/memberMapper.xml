@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="MemberMapper">
+<insert id="insertMember">
+Insert Into member (userId,userPass,userName)
+	value(#{userId},#{userPass},#{userName})
+</insert>
+<select id="selectIdDupChk" parameterType="String" resultType="int">
+Select COUNT(userId)
+From member
+Where userId=#{userId}
+</select>
+<select id="selectLogin" parameterType="com.daily365.www.vo.MemberVO" resultType="int">
+Select COUNT(userId)
+From member
+Where userId=#{userId}
+	and userPass=#{userPass}
+</select>
+<select id="selectMember" resultType="com.daily365.www.vo.MemberVO">
+Select userId,userPass,userName,regDate,modDate,deleteYn
+From member
+Where userId=#{userId}
+</select>
+<update id="updatePass" >
+update member 
+	set userPass =#{userPass},
+		modDate = #{modDate}
+	Where userId =#{userId}
+</update>
+<update id="deleteMember">
+update member
+	set deleteYn='Y'
+Where userId=#{userId}
+</update>
+<select id="selectPassChk" resultType="int">
+Select Count(userPass) 
+From member
+Where userId=#{userId}
+	And	userPass=#{userPass}
+</select>
+
+</mapper>

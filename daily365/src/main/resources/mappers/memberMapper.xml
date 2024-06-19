@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="MemberMapper">
+<sql id="search">
+<if test="searchType!=null and !searchType.equals('')">
+	<if test="searchType=='all'.toString()">AND  ( title like CONCAT('%',#{keyword},'%') 
+											OR content like CONCAT('%',#{keyword},'%')
+											OR writer like CONCAT('%',#{keyword},'%')  )
+	</if>
+	<if test="searchType=='t'.toString()">AND title like CONCAT('%',#{keyword},'%')</if>
+	<if test="searchType=='c'.toString()">AND content like CONCAT('%',#{keyword},'%')</if>
+</if>
+<if test="startDate!=null and !startDate.equals('') and endDate!=null and !endDate.equals('')">
+	AND SUBSTRING(regdate,1,10) BETWEEN  #{startDate} AND #{endDate}
+</if>
+</sql>
+
+<insert id="insertMember">
+Insert Into member (userId,userPass,userName)
+	value(#{userId},#{userPass},#{userName})
+</insert>
+<select id="selectIdDupChk" parameterType="String" resultType="int">
+Select COUNT(userId)
+From member
+Where userId=#{userId}
+</select>
+<select id="selectLogin" parameterType="com.daily365.www.vo.MemberVO" resultType="int">
+Select COUNT(userId)
+From member
+Where userId=#{userId}
+	and userPass=#{userPass}
+</select>
+<select id="selectMember" resultType="com.daily365.www.vo.MemberVO">
+Select userId,userPass,userName,regDate,modDate,deleteYn
+From member
+Where userId=#{userId}
+</select>
+<update id="updatePass" >
+update member 
+	set userPass =#{userPass},
+		modDate = #{modDate}
+	Where userId =#{userId}
+</update>
+<update id="deleteMember">
+update member
+	set deleteYn='Y'
+Where userId=#{userId}
+</update>
+<select id="selectPassChk" resultType="int">
+Select Count(userPass) 
+From member
+Where userId=#{userId}
+	And	userPass=#{userPass}
+</select>
+
+
+<select id="selectList"  resultType="com.daily365.www.vo.BoardVO">
+Select rnum,bno,title,content,writer,regdate,moddate,likeCnt,reportCnt,hitCnt,deleteYn
+From ( Select bno,title,content,writer,regdate,moddate,likeCnt,reportCnt,hitCnt,deleteYn,
+		ROW_NUMBER() OVER(ORDER BY bno DESC) AS rnum
+		From Board
+		Where 1=1
+		And writer=#{writer}
+		<include refid="search"></include>
+		) R	 
+	Where 1=1
+		And  rnum Between #{startRow} and #{endRow}
+		And deleteYn ='N'
+	Order by bno desc
+</select>
+<select id="totalCount" resultType="int">
+Select count(bno)
+From board
+Where 1=1
+	and writer=#{writer}
+	<include refid="search"></include>
+</select>
+
+
+<insert id="insertCalendar">
+Insert into calendar (title,content,writer,start,end,color,regDate)
+			values (#{title},#{content},#{writer},#{start},#{end},#{color},now())
+</insert>
+<select id="selectCalendarList" resultType="com.daily365.www.vo.CalendarVO">
+Select idx,title,content,writer,start,end,color,regDate,modDate,deleteYn
+From calendar
+where 1=1
+	and writer=#{writer}
+	and deleteYn ='N'
+</select>
+<select id="selectCalendarByIdx" resultType="com.daily365.www.vo.CalendarVO">
+Select idx,title,content,writer,start,end,color,regDate,modDate,deleteYn
+From calendar
+where 1=1
+	and deleteYn ='N'
+	and idx=#{idx}
+</select>
+<update id="updateCalendar">
+Update calendar 
+	set title=#{title},content=#{content},start=#{start},end=#{end},color=#{color},modDate=now()
+Where 1=1	
+	and idx=#{idx}
+</update>
+<update id="deleteCalendar">
+Update calendar
+	set deleteYn='Y'
+Where 1=1
+	and idx=#{idx}
+</update>
+
+<select id ="selectChart1"  resultType="com.daily365.www.vo.BoardVO">
+SELECT  
+	SUM(a.moddate IS NOT NULL ) AS modChart , 
+	SUM(a.deleteYn='Y') AS delChart  , 
+	COUNT(b.fileNo) AS fileChart,
+	(SELECT COUNT(rno) AS rnoCnt FROM reply WHERE 1=1 AND writer=#{writer}) AS replyChart
+FROM board a
+LEFT OUTER JOIN file b
+ON a.bno = b.bno
+WHERE 1=1
+AND writer=#{writer}
+
+</select>
+<select id="selectChart2" resultType="com.daily365.www.vo.BoardVO">
+SELECT EXTRACT(year FROM regdate) AS yearChart ,EXTRACT(month FROM regdate) AS monthChart
+		,COUNT(bno) AS bnoChart,SUM(hitCnt) AS hitChart,SUM(likeCnt) AS likeChart,SUM(reportCnt) AS reportChart
+FROM board 
+WHERE writer=#{writer}
+GROUP BY 1,2
+</select>
+<select id="selectChart3" resultType="com.daily365.www.vo.BoardVO">
+SELECT (case when SUBSTRING(regdate,12,2) = '00' OR SUBSTRING(regdate,12,2) = '01' 
+					OR SUBSTRING(regdate,12,2) = '02' OR SUBSTRING(regdate,12,2) = '03'  then '00~03'
+				 when SUBSTRING(regdate,12,2) = '04' OR SUBSTRING(regdate,12,2) = '05' 
+					OR SUBSTRING(regdate,12,2) = '06' OR SUBSTRING(regdate,12,2) = '07'  then '01~07'
+				when SUBSTRING(regdate,12,2) = '08' OR SUBSTRING(regdate,12,2) = '09' 
+					OR SUBSTRING(regdate,12,2) = '10' OR SUBSTRING(regdate,12,2) = '11'  then '08~11'
+				when SUBSTRING(regdate,12,2) = '12' OR SUBSTRING(regdate,12,2) = '13' 
+					OR SUBSTRING(regdate,12,2) = '14' OR SUBSTRING(regdate,12,2) = '15'  then '12 ~15'
+				when SUBSTRING(regdate,12,2) = '16' OR SUBSTRING(regdate,12,2) = '17' 
+					OR SUBSTRING(regdate,12,2) = '18' OR SUBSTRING(regdate,12,2) = '19'  then '16~19'
+				when SUBSTRING(regdate,12,2) = '20' OR SUBSTRING(regdate,12,2) = '21' 
+					OR SUBSTRING(regdate,12,2) = '22' OR SUBSTRING(regdate,12,2) = '23'  then '20~23'
+			ELSE 'null' END ) AS regTimeChart
+,COUNT(regdate) regDateChart
+FROM board
+WHERE 1=1
+	AND writer = #{writer}
+GROUP BY 1
+</select>
+<select id="selectChart4" resultType="com.daily365.www.vo.BoardVO">
+SELECT SUM(likeCnt) + (SELECT SUM(likeCnt) FROM reply WHERE writer='daily') AS totalLikeChart ,
+		 SUM(reportCnt) + (SELECT SUM(reportCnt) FROM reply WHERE writer='daily') AS totalReportChart
+FROM board 
+WHERE 1=1
+AND writer =#{writer}
+</select>
+<select id="selectChart5" resultType="com.daily365.www.vo.CalendarVO">
+SELECT  color,
+	(	case when color='blue' then '행사' 
+		 	when color='green' then '회의' 
+		 	when color='red' then '휴가' 
+		 	when color='yellow' then '기타' 
+		ELSE 'null' END 
+	) AS colorChart   
+,	SUM( DATEDIFF(END,START) ) AS calendarChart
+FROM calendar 
+WHERE writer = #{writer}
+AND deleteYn='N'
+GROUP BY 1 
+</select>
+<select id="selectChart6" resultType="com.daily365.www.vo.BoardVO">
+SELECT EXTRACT(year FROM regdate) AS yearChart ,EXTRACT(month FROM regdate) AS monthChart,
+		COUNT(bno) AS bnoChart,SUM(hitCnt) AS hitChart
+FROM board
+WHERE 1=1
+AND writer =#{writer}
+GROUP BY 1,2
+</select>
+
+</mapper>

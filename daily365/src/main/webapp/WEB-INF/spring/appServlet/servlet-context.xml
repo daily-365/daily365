@@ -1,0 +1,77 @@
+<beans:beans
+	xmlns="http://www.springframework.org/schema/mvc"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:c="http://www.springframework.org/schema/c"
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:lang="http://www.springframework.org/schema/lang"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.1.xsd http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-3.1.xsd http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.1.xsd http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-3.1.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.1.xsd">
+<!--  DispatcherServlet Context: defines this servlet's request-processing infrastructure  -->
+<!--  Enables the Spring MVC @Controller programming model  -->
+<annotation-driven/>
+<!--  Handles HTTP GET requests for /resources/** by efficiently serving up static resources in the ${webappRoot}/resources directory  -->
+<resources mapping="/resources/**" location="/resources/"/>
+<!--  Resolves views selected for rendering by @Controllers to .jsp resources in the /WEB-INF/views directory  -->
+<beans:bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+<beans:property name="prefix" value="/WEB-INF/views/"/>
+<beans:property name="suffix" value=".jsp"/>
+</beans:bean>
+
+<context:component-scan	base-package="com.daily365.www.controller" />
+<context:component-scan	base-package="com.daily365.www.dao" />
+<context:component-scan	base-package="com.daily365.www.dto" />
+<context:component-scan	base-package="com.daily365.www.service" />
+<context:component-scan	base-package="com.daily365.www.vo" />
+<context:component-scan	base-package="com.daily365.www.utils" />
+<!-- MultipartResolver 설정 --> 
+<beans:bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver"> 
+	<beans:property name="maxUploadSize" value="104857600" /> 
+</beans:bean> 
+<interceptors>
+           <interceptor>
+               	<mapping path="/"/>
+               	<mapping path="/board/write"/>
+               	<mapping path="/board/read"/>
+               	<mapping path="/board/update"/>
+               	<mapping path="/board/delete"/>
+               	<mapping path="/board/like"/>
+               	<mapping path="/board/report"/>
+               	
+               	<mapping path="/board/reply"/>
+               	<mapping path="/reply/write"/>
+               	<mapping path="/reply/update"/>
+               	<mapping path="/reply/delete"/>
+               	<mapping path="/reply/like"/>
+               	<mapping path="/reply/report"/>
+               	
+               	<mapping path="/board/fileUpload"/>
+               	<mapping path="/board/fileDown"/>
+               	<mapping path="/board/fileDelete"/>
+               	<mapping path="/board/fileUpdate"/>
+               	
+               	<mapping path="/board/excelDown"/>
+               	
+               	<mapping path="/mypage/main"/>
+               	<mapping path="/mypage/account"/>
+               	<mapping path="/mypage/delete"/>
+               	<mapping path="/mypage/updatepass"/>
+               	<mapping path="/mypage/calendar"/>
+               	<mapping path="/mypage/calendar/read"/>
+               	<mapping path="/mypage/calendar/insert"/>
+               	<mapping path="/mypage/statistic"/>
+               	<mapping path="/mypage/statistic/update"/>
+               	<mapping path="/mypage/statistic/delete"/>
+               	
+                <beans:bean id="commonInterceptor" class="com.daily365.www.utils.Interceptor"/>
+        </interceptor>
+   </interceptors>
+</beans:beans>
